@@ -19,15 +19,15 @@ class CanvasUser:
                 self.parser.write(configfile)
             self.canvas = Canvas(API_URL, API_KEY)
         user = self.canvas.get_current_user()
-        print(f"connected to canvas as {user.name} ({user.id})")
+        print(f"Connected to Canvas as {user.name} ({user.id})")
     
 
 def main():
     canvas = CanvasUser().canvas
     id = 1270511
     course = canvas.get_course(id)
-    parser = CourseParser(course)
-    parser.course_to_json("./SavedCourses/canvas.json")
+    parser = CourseParser(id, course)
+    parser.course_to_json()
 
 if __name__ == '__main__':
     main()
