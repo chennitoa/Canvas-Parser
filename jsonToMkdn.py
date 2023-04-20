@@ -1,10 +1,16 @@
 from markdownify import markdownify as md
+import configparser
 import json
 import re
 import os
 import requests
 
-def check_links(s):
+
+        
+
+class MkdnParser:
+
+    def check_links(self, s):
         """
         Checks if the given link is a canvas file, if so, downloads the file and gives a path to the file
         
@@ -12,14 +18,26 @@ def check_links(s):
         s -- re.Match object containing a link
         Return: string
         """
-        link = s.group(2)
+        link = s.group(1)
         print(link)
-        filename = s.group(3)
+        filename = s.group(2)
         print(filename)
-        
+        r = requests.get(link, auth = (self.parser['CANVAS CLONE']['api_key'],))
 
-class MkdnParser:
     def __init__(self, file):
+        # Get api key for making file download requests later
+        self.parser = configparser.ConfigParser()
+        if os.path.isfile('config.ini'):
+            self.parser.read('config.ini')
+        else:
+            API_URL = input('API URL: ')
+            API_KEY = input('API Token: ')
+            self.parser['CANVAS CLONE'] = {}
+            self.parser['CANVAS CLONE']['api_url'] = API_URL
+            self.parser['CANVAS CLONE']['api_key'] = API_KEY
+            with open("config.ini", "w") as configfile:
+                self.parser.write(configfile)
+
         self.file = file
         with open(file) as infile:
             self.file_dict = json.load(infile)
@@ -40,9 +58,9 @@ class MkdnParser:
         Keyword arguments:
         Return: None
         """
-        linkPattern = r'<(a)[^>]*?href="([^"]*)"[^>]*>([^<]*)'
+        linkPattern = r'<a[^>]*?href="([^"]*)"[^>]*>([^<]*)'
 
-        linkTags = re.sub(linkPattern, check_links, self.file_dict['description'])
+        linkTags = re.sub(linkPattern, self.check_links, self.file_dict['description'])
         # print(linkTags)
 
     def write_to_mkdn(self, filename):
