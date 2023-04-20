@@ -1,5 +1,6 @@
+/CodEvalTooling/
+/__pycache__/
+/venv/
+/SavedCourses/
 /.git
-/__pycache__
-/venv
-/SavedCourses
-config.ini
+/config.ini
