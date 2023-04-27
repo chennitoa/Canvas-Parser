@@ -4,11 +4,35 @@ import json
 import re
 import os
 import requests
-
+import time
 
         
 
 class MkdnParser:
+
+    def __init__(self, file):
+        # Get api key for making file download requests later
+        self.mParser = configparser.ConfigParser()
+        if os.path.isfile('config.ini'):
+            self.mParser.read('config.ini')
+        else:
+            API_URL = input('API URL: ')
+            API_KEY = input('API Token: ')
+            self.mParser['CANVAS CLONE'] = {}
+            self.mParser['CANVAS CLONE']['api_url'] = API_URL
+            self.mParser['CANVAS CLONE']['api_key'] = API_KEY
+            with open("config.ini", "w") as configfile:
+                self.mParser.write(configfile)
+
+        self.file = './CodEvalTooling/' + file
+        with open(self.file) as infile:
+            self.file_dict = json.load(infile)
+
+        self.dir_name = file.split(".")[0] + '/'
+
+        if not os.path.exists('./CodEvalTooling/' + self.dir_name):
+            os.makedirs('./CodEvalTooling/' + self.dir_name)
+
 
     def check_links(self, s):
         """
@@ -19,29 +43,14 @@ class MkdnParser:
         Return: string
         """
         link = s.group(1)
-        print(link)
         filename = s.group(2)
-        print(filename)
-        r = requests.get(link, auth = (self.parser['CANVAS CLONE']['api_key'],))
+        headers = {'Authorization': 'Bearer ' + self.mParser['CANVAS CLONE']['api_key']}
+        response = requests.get(link, headers)
+        if 'Content-Length' in response.headers:
+            with open('CodEvalTooling/' + self.dir_name + filename, 'wb') as outfile:
+                outfile.write(response.content)
 
-    def __init__(self, file):
-        # Get api key for making file download requests later
-        self.parser = configparser.ConfigParser()
-        if os.path.isfile('config.ini'):
-            self.parser.read('config.ini')
-        else:
-            API_URL = input('API URL: ')
-            API_KEY = input('API Token: ')
-            self.parser['CANVAS CLONE'] = {}
-            self.parser['CANVAS CLONE']['api_url'] = API_URL
-            self.parser['CANVAS CLONE']['api_key'] = API_KEY
-            with open("config.ini", "w") as configfile:
-                self.parser.write(configfile)
-
-        self.file = file
-        with open(file) as infile:
-            self.file_dict = json.load(infile)
-
+    
     def clean_description(self):
         """
         Removes newline characters from the description in the assignment json
@@ -50,6 +59,7 @@ class MkdnParser:
         Return: None
         """
         self.file_dict.update({'description': self.file_dict['description'].replace(r'\n', '')})
+
 
     def parse_links_to_files(self):
         """
@@ -62,6 +72,7 @@ class MkdnParser:
 
         linkTags = re.sub(linkPattern, self.check_links, self.file_dict['description'])
         # print(linkTags)
+
 
     def write_to_mkdn(self, filename):
         """
@@ -79,18 +90,23 @@ class MkdnParser:
         file_mkdn += '\nCRT_HW END'
         file_mkdn_encoded = bytes(file_mkdn, 'utf-8')
 
-        with open(filename, 'wb') as outfile:
+        with open('./CodEvalTooling/' + self.dir_name + filename, 'wb') as outfile:
             outfile.write(file_mkdn_encoded)
         
+
 def main():
-    parser = MkdnParser('./CodEvalTooling/CNVS_A00024.json')
+
     if not os.path.exists('./CodEvalTooling/'):
         os.makedirs('./CodEvalTooling/')
-    
-    parser.clean_description()
-    parser.parse_links_to_files()
 
-    parser.write_to_mkdn('./CodEvalTooling/PA 01.txt')
+    file_to_parse = input("Give filename to parse: ")
+    
+    mParser = MkdnParser(file_to_parse)    
+
+    mParser.clean_description()
+    mParser.parse_links_to_files()
+
+    mParser.write_to_mkdn('PA 01.txt')
 
 if __name__ == '__main__':
     main()
